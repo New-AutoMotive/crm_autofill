@@ -17,8 +17,8 @@ from datetime import datetime
 os.chdir('/home/ben/crm_autofill/crm_autofill')
 
 # # Connect to the slack bot to keep people informed about what's going on. 
-# client = slack.WebClient(token= slack_token)
-# print_to_slack("DB Update Notification: About to update contacts' constituency information using information in the postcode field. I'll report back when it's done.")
+message = "DB Update Notification: About to update contacts' constituency information using information in the postcode field. I'll report back when it's done."
+print_to_slack(message = message, slack_token = slack_token)
 
 # Create today's date for when we need to end/start some relationships
 today = datetime.today().strftime('%Y-%m-%d')
@@ -34,9 +34,6 @@ db = connection.connect(user='ben', password=my_sql_password, host='localhost', 
 query = "SELECT * FROM `civicrm_relationship` WHERE relationship_type_id=16 AND is_active=1"
 civicrm_relationship = pd.read_sql(query,db)
 
-query = "SELECT * FROM `civicrm_relationship` WHERE relationship_type_id != 16 OR is_active !=1"
-civicrm_relationship_outer = pd.read_sql(query, db)
-
 # Obtain latest civicrm_addresses
 query = "SELECT postal_code, contact_id FROM `civicrm_address` WHERE postal_code NOT LIKE 'SW1%'"
 civicrm_address_sel = pd.read_sql(query, db)
@@ -48,9 +45,8 @@ contact_ids = pd.read_sql(query, db)
 # Obtain civicrm_address_sel_old, the version from last time
 civicrm_address_sel_old = pd.read_csv('/home/ben/crm_autofill/crm_autofill/address_files/last_civicrm_addresses.csv', index_col=0)
 
-# print(civicrm_address_sel[~ civicrm_address_sel.contact_id.isin(civicrm_address_sel_old.contact_id.tolist())])
-
-# NEED TO DO AN OUTER JOIN HERE - make civicrm_address_sel = the above filter
+# UNCOMMENT AFTER FIRST RUN!
+# civicrm_address_sel = civicrm_address_sel[~ civicrm_address_sel.contact_id.isin(civicrm_address_sel_old.contact_id.tolist())]
 
 # Import postcode - constituency contact id lookup
 lookup = pd.read_csv('/home/ben/crm_autofill/crm_autofill/address_files/lookup_pcd_constituency_id.csv', index_col=0)
@@ -143,14 +139,15 @@ civicrm_relationship_to_upload.drop(columns='id', inplace=True)
 civicrm_relationship_to_upload.loc[:, 'is_permission_a_b'] = 0
 civicrm_relationship_to_upload.loc[:, 'is_permission_b_a'] = 0
 
+num_new_rows = len(civicrm_relationship_to_upload)
+
 ###########################
 # Update the new database #
 ###########################
 
 # Delete all constituency relationships
 db = connection.connect(user='ben', password=my_sql_password, host='localhost', database='wordpress', use_pure=True)
-query = "DELETE FROM civicrm_relationship_copy WHERE relationship_type_id = 16;"
-# query=("SELECT * FROM civicrm_relationship_copy LIMIT 10")
+query = "DELETE FROM civicrm_relationship WHERE relationship_type_id = 16 and is_active = 1;"
 cursor = db.cursor()
 cursor.execute(query)
 db.close()
@@ -158,27 +155,21 @@ db.close()
 # Connect to the MySQL database
 engine = create_engine('mysql://ben:{pw}@localhost:3306/wordpress'.format(pw=my_sql_password))
 cnx = engine.connect()
+
+# Upload the constituency table
 try:
-    frame = civicrm_relationship_to_upload.to_sql('civicrm_relationship_copy', cnx, if_exists='append', index=False)
+    frame = civicrm_relationship_to_upload.to_sql('civicrm_relationship', cnx, if_exists='append', index=False)
 except ValueError as vx:
     print(vx)
 except Exception as ex:   
     print(ex)
 else:
-    print("Table {} created successfully.".format('civicrm_relationship_copy'));   
+    print("Table {} updated successfully.".format('civicrm_relationship'))
+    done_msg = 'Just updated constituency relationships between individuals/organisations and constituencies. I updated/created {} new relationships!'.format(num_new_rows)
+    print_to_slack(message = done_msg, slack_token = slack_token)
 finally:
     cnx.close()
 
 
-# db = connection.connect(user='ben', password=my_sql_password, host='localhost', database='wordpress', use_pure=True)
-
-# civicrm_relationship_to_upload.to_sql(name = 'civicrm_relationship', con=db, if_exists='replace')
-
-# To upload our new relationships to the civicrm_relationships table, we need to create one large table to overwrite what is there already. 
-# To do this, we must take the entire civicrm_relationships table which were not considered in the above work, i.e. all those which are either
-# inactive or the relationship type != 16, append our table, and then upload the new table overwriting what was there previously. 
-
-
-
 # Finally, save this latest version of civicrm_addresses_sel to a csv so that we can check against it in the future
-# civicrm_address_sel.to_csv('address_files/last_civicrm_addresses.csv')
+civicrm_address_sel.to_csv('address_files/last_civicrm_addresses.csv')
