@@ -1,5 +1,6 @@
 import slack
 import os
+from credentials import slack_token
 os.chdir('/home/ben/crm_autofill/crm_autofill')
 
 dsk = ''
@@ -23,5 +24,5 @@ elif (percent_used_int >= 60) & (percent_used_int <80):
 elif percent_used_int >= 80:
     message = "Server disk WARNING: the server has a {s} disk, of which {u} is used, and {f} is free. The disk is {p} full. \n \nACTION REQUIRED: increase disk size soon to prevent server crashing.".format(s=size, u=used, f=free, p=percent_used)
 
-client = slack.WebClient(token='xoxb-1225269354933-2466565277092-8SYhrqoC9BWSdVQcuCgUgU8O')
+client = slack.WebClient(token=slack_token)
 client.chat_postMessage(channel = "civi-crm", text = message)
