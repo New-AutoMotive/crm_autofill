@@ -43,7 +43,7 @@ query = "SELECT id FROM `civicrm_contact`"
 contact_ids = pd.read_sql(query, db)
 
 # Obtain civicrm_address_sel_old, the version from last time
-civicrm_address_sel_old = pd.read_csv('/home/ben/crm_autofill/crm_autofill/address_files/last_civicrm_addresses.csv', index_col=0)
+# civicrm_address_sel_old = pd.read_csv('/home/ben/crm_autofill/crm_autofill/address_files/last_civicrm_addresses.csv', index_col=0)
 
 # UNCOMMENT AFTER FIRST RUN!
 # civicrm_address_sel = civicrm_address_sel[~ civicrm_address_sel.contact_id.isin(civicrm_address_sel_old.contact_id.tolist())]
@@ -147,9 +147,10 @@ num_new_rows = len(civicrm_relationship_to_upload)
 
 # Delete all constituency relationships
 db = connection.connect(user='ben', password=my_sql_password, host='localhost', database='wordpress', use_pure=True)
-query = "DELETE * FROM `civicrm_relationship` WHERE relationship_type_id=16 AND is_active=1 AND contact_id_a IN (SELECT contact_id FROM `civicrm_address` WHERE postal_code NOT LIKE 'SW1%' AND postal_code IS NOT NULL);"
+query = "DELETE FROM `civicrm_relationship` WHERE relationship_type_id=16 AND is_active=1 AND contact_id_a IN (SELECT contact_id FROM `civicrm_address` WHERE postal_code NOT LIKE 'SW1%' AND postal_code IS NOT NULL);"
 cursor = db.cursor()
 cursor.execute(query)
+db.commit()
 db.close()
 
 # Connect to the MySQL database

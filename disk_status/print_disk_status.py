@@ -1,7 +1,12 @@
 import slack
 import os
+import sys
+sys.path.append("/home/ben/crm_autofill/crm_autofill/")
+
 from credentials import slack_token
-os.chdir('/home/ben/crm_autofill/crm_autofill')
+os.chdir('/home/ben/crm_autofill/crm_autofill/disk_status')
+
+
 
 dsk = ''
 
