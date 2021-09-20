@@ -1,3 +1,4 @@
 credentials.py
 postcode_constituency_v1.py
 address_files/last_civicrm_addresses.csv
+disk_status.txt
