@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import mysql.connector as connection
-import pymysql
 from sqlalchemy import create_engine
 import slack
 import os
@@ -18,7 +17,8 @@ os.chdir('/home/ben/crm_autofill/crm_autofill')
 
 # # Connect to the slack bot to keep people informed about what's going on. 
 message = "DB Update Notification: About to update contacts' constituency information using information in the postcode field. I'll report back when it's done."
-print_to_slack(message = message, slack_token = slack_token)
+client = slack.WebClient(token=slack_token)
+client.chat_postMessage(channel = "civi-crm", text = message)
 
 # Create today's date for when we need to end/start some relationships
 today = datetime.today().strftime('%Y-%m-%d')
@@ -31,11 +31,11 @@ today = datetime.today().strftime('%Y-%m-%d')
 db = connection.connect(user='ben', password=my_sql_password, host='localhost', database='wordpress', use_pure=True)
 
 # Obtain civicrm_relationship to get existing and active 'constituent of' relationships
-query = "SELECT * FROM `civicrm_relationship` WHERE relationship_type_id=16 AND is_active=1"
+query = "SELECT * FROM `civicrm_relationship` WHERE relationship_type_id=16 AND is_active=1 AND contact_id_a IN (SELECT contact_id FROM `civicrm_address` WHERE postal_code NOT LIKE 'SW1%' AND postal_code IS NOT NULL)"
 civicrm_relationship = pd.read_sql(query,db)
 
 # Obtain latest civicrm_addresses
-query = "SELECT postal_code, contact_id FROM `civicrm_address` WHERE postal_code NOT LIKE 'SW1%'"
+query = "SELECT postal_code, contact_id FROM `civicrm_address` WHERE postal_code NOT LIKE 'SW1%' AND postal_code IS NOT NULL;"
 civicrm_address_sel = pd.read_sql(query, db)
 
 # Obtain list of contact ids
@@ -147,7 +147,7 @@ num_new_rows = len(civicrm_relationship_to_upload)
 
 # Delete all constituency relationships
 db = connection.connect(user='ben', password=my_sql_password, host='localhost', database='wordpress', use_pure=True)
-query = "DELETE FROM civicrm_relationship WHERE relationship_type_id = 16 and is_active = 1;"
+query = "DELETE * FROM `civicrm_relationship` WHERE relationship_type_id=16 AND is_active=1 AND contact_id_a IN (SELECT contact_id FROM `civicrm_address` WHERE postal_code NOT LIKE 'SW1%' AND postal_code IS NOT NULL);"
 cursor = db.cursor()
 cursor.execute(query)
 db.close()
