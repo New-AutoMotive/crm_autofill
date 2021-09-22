@@ -43,10 +43,10 @@ query = "SELECT id FROM `civicrm_contact`"
 contact_ids = pd.read_sql(query, db)
 
 # Obtain civicrm_address_sel_old, the version from last time
-# civicrm_address_sel_old = pd.read_csv('/home/ben/crm_autofill/crm_autofill/address_files/last_civicrm_addresses.csv', index_col=0)
+civicrm_address_sel_old = pd.read_csv('/home/ben/crm_autofill/crm_autofill/address_files/last_civicrm_addresses.csv', index_col=0)
 
 # UNCOMMENT AFTER FIRST RUN!
-# civicrm_address_sel = civicrm_address_sel[~ civicrm_address_sel.contact_id.isin(civicrm_address_sel_old.contact_id.tolist())]
+civicrm_address_sel = civicrm_address_sel[~ civicrm_address_sel.contact_id.isin(civicrm_address_sel_old.contact_id.tolist())]
 
 # Import postcode - constituency contact id lookup
 lookup = pd.read_csv('/home/ben/crm_autofill/crm_autofill/address_files/lookup_pcd_constituency_id.csv', index_col=0)
@@ -162,8 +162,12 @@ try:
     frame = civicrm_relationship_to_upload.to_sql('civicrm_relationship', cnx, if_exists='append', index=False)
 except ValueError as vx:
     print(vx)
+    done_msg = 'Uh oh, there was a ValueError while trying to upload updated constituency relationships. The details are here: \n {vx}'.format(vx=vx)
+    print_to_slack(message = done_msg, slack_token = slack_token)
 except Exception as ex:   
     print(ex)
+    done_msg = 'Uh oh, there was an Exception while trying to upload updated constituency relationships. The details are here: \n {vx}'.format(vx=ex)
+    print_to_slack(message = done_msg, slack_token = slack_token)
 else:
     print("Table {} updated successfully.".format('civicrm_relationship'))
     done_msg = 'Just updated constituency relationships between individuals/organisations and constituencies. I updated/created {} new relationships!'.format(num_new_rows)

@@ -6,8 +6,6 @@ sys.path.append("/home/ben/crm_autofill/crm_autofill/")
 from credentials import slack_token
 os.chdir('/home/ben/crm_autofill/crm_autofill/disk_status')
 
-
-
 dsk = ''
 
 with open('disk_status.txt', 'r') as f:
