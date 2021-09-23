@@ -48,7 +48,7 @@ class bqTweetTools:
 
             # Creating a dataframe from the tweets list above
             tweets_df1 = pd.DataFrame(tweets_list1, columns=['datetime', 'tweetID', 'text', 'userName'])
-            tweets_df1['text'] = tweets_df1.apply(lambda x: x.replace('&amp;', '&'))
+            tweets_df1['text'] = tweets_df1.text.apply(lambda x: x.replace('&amp;', '&'))
             return tweets_df1
 
 
@@ -62,7 +62,11 @@ class bqTweetTools:
 
         try:
             for h in tqdm(list_of_handles):
-                dfs.append(get_tweets(h, key_words))
+                if isinstance(key_words, list):
+                    for word in key_words:
+                        dfs.append(get_tweets(h, word))
+                else:
+                    dfs.append(get_tweets(h, key_words))
         except UnboundLocalError:
             print('Argh - UnboundLocalError! Did you call .get_handles first?')
 
