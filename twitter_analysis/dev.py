@@ -1,15 +1,20 @@
 from tweet_monitoring import bqTweetTools, key_words
-import pandas as pd
+# import pandas as pd
 
+# Instantiate a bqTweetTools
 tt = bqTweetTools()
 
-tt.get_handles(limit = 20)
+# Pull all handles from the database
+tt.get_handles()
 
+# Search on the standard keywords
 tt.get_all_tweets(key_words = key_words)
+
 tt.save_csv('tmp.csv')
 
-df = pd.read_csv('tmp.csv')
+print(tt.tweets.head())
 
-print(df.shape)
+tt.bq_upload_overwrite(table_name = 'ac_wide_keywords_tweets')
 
-print(df)
+print(tt.tweets.shape)
+print(tt.tweets.head())

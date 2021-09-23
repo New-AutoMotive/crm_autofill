@@ -1,14 +1,21 @@
-# crm_autofill
+<div align = 'center'>
+    <img src="https://images.squarespace-cdn.com/content/v1/5e753d15b0eb84693c7e3e21/1594651396824-B2UIITAJOEPGC45GWVBM/CCS-supplierAsset+1.png?format=1500w" width="500"><br>
+</div>
 
-This repo contains the development of a script to automatically update contact info with various information pertaining to contacts held in our CiviCRM database. 
 
-Overview of files:
-* postcode_constituency_v2.py is a python script that looks through a CiviCRM database and matches contacts to parliamentary constituencies, building relationships between contacts and those constituencies. 
-* helpers.py contains general helfpful functions
-* create_pcd_constituency_id_lookup.py is a python script to create a csv that matches postcodes to parliamentary constituency entity_id fields in the civicrm SQL databases that sit behind our database. 
-* pp_data holds scripts for extracting information from Parallel Parliament
-* mp_info contains scripts for extracting fields about MPs (mostly twitter handles)
-* disk_status contains scripts for automatically reporting on the state of the server's storage capacity
-* bq_sync contains scripts for synchronising some MySQL tables with BigQuery. At present this just keeps the BQ tables in step with the CiviCRM database. 
-* archive contains old crap
-* address_files contains csvs (not in this repo) which are used to match postcodes to other details. 
+# CiviCRM Autofill and Social Media Analysis Tools
+
+### What is in this repo?
+A set of scripts that have been developed to augment and complement our CiviCRM system, so that we can automate tasks, and monitor our contacts' activities with the aim of better understanding New AutoMotive's impact.
+
+WARNING: Many of these scripts are highly bespoked to NewAutoMotive's version of CiviCRM, and will not run out of the box on other systems. 
+
+### What do the tools in this toolkit do?
+At present, there are scripts to undertake the following tasks:
+- Automatically generate information about a contact's Parliamentary constituency based on their postcode. 
+- Automatically create BigQuery copies of CiviCRM's relational databases, for easy data analysis and manipulation without risk of interfering with Civi's operation. 
+- Automatically obtain MP's twitter handles from ParallelParliament, and - in future - other information too. 
+- Monitor the CiviCRM server's storage capacity and report it to the team via Slack. 
+
+### What good is this to me, if I'm not a New AutoMotive member of staff?
+At present, not much. But if you'd like to find out more about the project, contact us on data@newautomotive.org.
