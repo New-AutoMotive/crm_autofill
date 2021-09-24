@@ -117,6 +117,21 @@ class bqTweetTools:
         except:
             print('No tweets! Call .get_handles, then .get_all_tweets to get some tweets!')
 
+    def from_csv(self, path='', index_col = 0):
+        """
+        Retreive a CSV saved with the save_csv() method, essentially just making use of pandas' read_csv() method. The DataFrame is returned, and saved as self.tweets.
+
+        :param path: Str, default ''. The name/path to the file you wish to open.
+        :param index_col: Int, default 0. The first column of a csv saved with the .save_csv() method saves the index in column 0.
+
+        :return: A DataFrame of tweets.
+        """
+
+
+        self.tweets = pd.read_csv(path, index_col = index_col)
+        df = pd.read_csv(path)
+        return df
+
     def bq_upload_overwrite(self, table_name):
         """
         A method for uploading the tables you've obtained by calling .get_handles() and .get_all_tweets() to bigquery.
@@ -125,16 +140,16 @@ class bqTweetTools:
 
         :return: None.
         """
-        table_index = 'crmserver-id.twitter{t}'.format(t=table_name)
+        table_index = 'crmserver-id.twitter.{t}'.format(t=table_name)
         bqclient = bigquery.Client()
-        try:
-            job_config = bigquery.job.LoadJobConfig()
-            job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-            job = bqclient.load_table_from_dataframe(self.tweets, table_index, job_config=job_config)
-            job.result()
-            print('Table {} successfully created'.format(table_name))
-        except:
-            print('Did you run .get_handles and .get_all_tweets first?')
+        # try:
+        job_config = bigquery.job.LoadJobConfig()
+        job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+        job = bqclient.load_table_from_dataframe(self.tweets, table_index, job_config=job_config)
+        job.result()
+        print('Table {} successfully created'.format(table_name))
+        # except:
+        #     print('Did you run .get_handles and .get_all_tweets first?')
 
     def get_tweets_from_bq(self, limit=10000, table_name='all_contacts_ev_tweets'):
         """
