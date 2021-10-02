@@ -3,7 +3,7 @@ from tweet_monitoring import bqTweetTools, key_words
 
 # Instantiate a bqTweetTools
 tt = bqTweetTools()
-#
+
 # # Pull all handles from the database
 # tt.get_handles(limit=100)
 # #

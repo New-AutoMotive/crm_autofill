@@ -84,7 +84,7 @@ class bqTweetTools:
             tweets_list1 = []
             # Using TwitterSearchScraper to scrape data and append tweets to list
             for i, tweet in enumerate(
-                    sntwitter.TwitterSearchScraper('{s} from:{h} since:{t}'.format(s=key_words, h=handle, t=since)).get_items()):
+                    sntwitter.TwitterSearchScraper('{s} (from:{h}) since:{t}'.format(s=key_words, h=handle, t=since)).get_items()):
                 if i > 300:
                     break
                 tweets_list1.append([tweet.date, tweet.id, tweet.content, tweet.user.username])
