@@ -1,7 +1,8 @@
 import pandas as pd
 import mysql.connector
+from credentials import my_sql_password
 
-cnx = mysql.connector.connect(user='ben', password='new_auto_2020', host='localhost', database='wordpress')
+cnx = mysql.connector.connect(user='ben', password=my_sql_password, host='localhost', database='wordpress')
 query = "SELECT entity_id, ons_code_7 FROM `civicrm_value_ons_code_7`"
 df_a = pd.read_sql(query,cnx)
 cnx.close()

@@ -52,7 +52,7 @@ class bqTweetTools:
         self.handles = df.copy()
         return df
 
-    def get_all_tweets(self, key_words):
+    def get_all_tweets(self, key_words, since = ''):
         """
         Obtains all tweets sent by your selection of twitter handles that contain the key word(s) you are interested in.
 
@@ -62,15 +62,29 @@ class bqTweetTools:
 
         :param key_words: Str, list of strings. The key words that you want to search on, e.g. 'electric vehicle', or ['electric vehicle', 'electric cars'], etc.
 
+        :param since: Str. A starting date after which to search from, in the format YYYY-MM-DD, e.g. 2021-03-01. 
+
         :return:  Returns a DataFrame with tweets sent by the handles you pulled earlier containing the specified keywords. A copy of this DataFrame is saved as self.tweets.
         """
-        key_words = key_words
 
-        def get_tweets(handle, key_words):
+        # Firstly, we handle cases where a list of strings has been passed as the keywords parameter. This replaces ['search term 1', 'search term 1'] with ("search term 1" OR "search term 2")
+        # This script handles each element in the list as a boolean search term, only returning tweets that contain that whole phrase. 
+
+        if isinstance(key_words, list):
+            lst_m = ['"'+x+'"' for x in key_words]
+            new_str = ' OR '.join(lst_m)
+            new_str = "("+new_str+")"
+            key_words = new_str
+        else:
+            pass
+        
+        since = since
+
+        def get_tweets(handle, key_words, since=''):
             tweets_list1 = []
             # Using TwitterSearchScraper to scrape data and append tweets to list
             for i, tweet in enumerate(
-                    sntwitter.TwitterSearchScraper('{s} from:{h}'.format(s=key_words, h=handle)).get_items()):
+                    sntwitter.TwitterSearchScraper('{s} from:{h} since:{t}'.format(s=key_words, h=handle, t=since)).get_items()):
                 if i > 300:
                     break
                 tweets_list1.append([tweet.date, tweet.id, tweet.content, tweet.user.username])
@@ -91,15 +105,13 @@ class bqTweetTools:
 
         try:
             for h in tqdm(list_of_handles):
-                if isinstance(key_words, list):
-                    for word in key_words:
-                        dfs.append(get_tweets(h, word))
-                else:
-                    dfs.append(get_tweets(h, key_words))
+                dfs.append(get_tweets(h, key_words, since))
         except UnboundLocalError:
             print('Argh - UnboundLocalError! Did you call .get_handles first?')
 
         df = pd.concat(dfs)
+
+        df.drop_duplicates(inplace=True)
 
         self.tweets = df.copy()
         return df
