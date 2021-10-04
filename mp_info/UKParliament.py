@@ -4,7 +4,7 @@ import mysql.connector as connection
 from sqlalchemy import create_engine
 import pandas as pd
 import glob
-import tqdm
+from tqdm import tqdm
 
 class UKParliament:
     """
