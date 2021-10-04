@@ -1,5 +1,5 @@
 <div align = 'center'>
-    <img src="https://images.squarespace-cdn.com/content/v1/5e753d15b0eb84693c7e3e21/1594651396824-B2UIITAJOEPGC45GWVBM/CCS-supplierAsset+1.png?format=1500w" width="500"><br>
+    <img src="/home/ben/crm_autofill/crm_autofill/assets/logo.png" width="200"><br>
 </div>
 
 
