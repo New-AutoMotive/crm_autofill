@@ -9,9 +9,9 @@ Base = declarative_base()
 
 # Print a message to slack's civi-crm channel
 
-def print_to_slack(message, slack_token):
+def print_to_slack(message, slack_token, channel = 'civi-crm'):
     client = slack.WebClient(token = slack_token)
-    client.chat_postMessage(channel = "civi-crm", text = message)
+    client.chat_postMessage(channel = channel, text = message)
 
 # Upload a dataframe to a civicrm database
 def upload_to_civi(sql_password, table_name, slack_token, df, write_disposition):
@@ -34,3 +34,12 @@ def upload_to_civi(sql_password, table_name, slack_token, df, write_disposition)
         # print_to_slack(message = done_msg, slack_token = slack_token)
     finally:
         cnx.close()
+
+
+def sql_to_pandas(sql_pw, query):
+    Base = declarative_base()
+    engine = create_engine('mysql+pymysql://ben:{pw}@localhost:3306/wordpress'.format(pw=sql_pw))
+    cnx = engine.connect()
+    df = pd.read_sql(sql = query, con = cnx)
+    return df
+

@@ -1,13 +1,20 @@
 import pandas as pd
-import mysql.connector as connection
+# import mysql.connector as connection
+from sqlalchemy import create_engine, text
 from google.cloud import bigquery
 import sys
+
+def connect_to_civi(sql_password):
+    engine = create_engine('mysql+pymysql://ben:{pw}@localhost/wordpress'.format(pw=sql_password))
+    return engine
+
 
 # Open connections
 def gbq_mysql_connect(sql_password):
     db = connection.connect(user='ben', password=sql_password, host='localhost', database='wordpress', use_pure=True)
     bqclient = bigquery.Client()
-    return db,bqclient
+    print('connection opened!')
+    return db, bqclient
 
 # db, bqclient = gbq_mysql_connect()
 
