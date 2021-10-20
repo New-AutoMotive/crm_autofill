@@ -355,4 +355,4 @@ def update_constituency(slack_t, sql_pw, slack_func):
 
 
     # Finally, save this latest version of civicrm_addresses_sel to a csv so that we can check against it in the future
-    civicrm_address_sel.to_csv('/home/ben/crm_autofill/crm_autofill/address_files/last_civicrm_addresses.csv')
+    civicrm_address_sel.to_csv('/home/ben/crm_autofill/crm_autofill/address_files/last_civicrm_addresses.csv', mode='a', header=False)

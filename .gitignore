@@ -4,3 +4,4 @@ address_files/last_civicrm_addresses.csv
 disk_status.txt
 *.csv
 mp_info/__pycache__/
+*.json
