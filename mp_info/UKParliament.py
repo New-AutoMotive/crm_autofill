@@ -10,28 +10,28 @@ import os
 import glob
 
 # Out of the box function from Google to upload stuff to storage.
-# from google.cloud import storage
+from google.cloud import storage
 
-# def upload_blob(bucket_name, source_file_name, destination_blob_name, project_id):
-#     """Uploads a file to the bucket."""
-#     # The ID of your GCS bucket
-#     # bucket_name = "your-bucket-name"
-#     # The path to your file to upload
-#     # source_file_name = "local/path/to/file"
-#     # The ID of your GCS object
-#     # destination_blob_name = "storage-object-name"
+def upload_blob(bucket_name, source_file_name, destination_blob_name, project_id):
+    """Uploads a file to the bucket."""
+    # The ID of your GCS bucket
+    # bucket_name = "your-bucket-name"
+    # The path to your file to upload
+    # source_file_name = "local/path/to/file"
+    # The ID of your GCS object
+    # destination_blob_name = "storage-object-name"
 
-#     storage_client = storage.Client(project = project_id)
-#     bucket = storage_client.bucket(bucket_name)
-#     blob = bucket.blob(destination_blob_name)
+    storage_client = storage.Client(project = project_id)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
 
-#     blob.upload_from_filename(source_file_name)
+    blob.upload_from_filename(source_file_name)
 
-#     print(
-#         "File {} uploaded to {}.".format(
-#             source_file_name, destination_blob_name
-#         )
-#     )
+    print(
+        "File {} uploaded to {}.".format(
+            source_file_name, destination_blob_name
+        )
+    )
 
 
 class UKParliament:
@@ -41,10 +41,11 @@ class UKParliament:
     def __init__(self, sql_password):
         self.sql_password = sql_password
         self.db = connection.connect(user='ben', password=self.sql_password, host='localhost', database='wordpress', use_pure=True)
-        query = "SELECT * FROM `civicrm_value_uk_parliament_9` WHERE entity_id IN (SELECT id FROM `civicrm_contact` WHERE contact_sub_type = 'Member_of_UK_Parliament' AND is_deleted = 0);"
+        query = "SELECT * FROM `civicrm_value_uk_parliament_19` WHERE entity_id IN (SELECT id FROM `civicrm_contact` WHERE contact_sub_type = 'Member_of_UK_Parliament' AND is_deleted = 0) AND active_or_former_member__64 = 'Active';"
         self.mps = pd.read_sql(query, self.db)
-        self.mps_ids = self.mps.parliament_api_number_10.tolist()
-        mps_ids = self.mps.parliament_api_number_10.tolist()
+        self.mps['parliament_api_number_68'] = pd.to_numeric(self.mps.parliament_api_number_68)
+        self.mps_ids = self.mps.parliament_api_number_68.tolist()
+        mps_ids = self.mps.parliament_api_number_68.tolist()
 
     def get_all_parliamentarians(self, path_to_tmp):
         # First we determine which id numbers are real and which do not refer
@@ -73,17 +74,14 @@ class UKParliament:
             else:
                 pass
 
-
-
-
         # We'll combine the current members into one big bit of json
         combined_json = []
         combined_former_json = []
-
+        # Here we iterate through the downloaded json and add it into the big bit of json
         for f in tqdm(glob.glob(path_to_tmp+'*_active_info.json')):
             with open(f, 'rb') as infile:
                 combined_json.append(json.load(infile))
-                
+        # Iterating through more globs of json
         for f in tqdm(glob.glob(path_to_tmp+'*_former_info.json')):
             with open(f, 'rb') as infile:
                 combined_former_json.append(json.load(infile))
@@ -96,8 +94,8 @@ class UKParliament:
         # Pandas + CSV solution:
         active_members_df = pd.json_normalize(combined_json)
         # active_members.drop(columns='')
-        active_members_df.to_csv(path_to_tmp+'active_members.csv', index=False)
 
+        active_members_df.to_csv(path_to_tmp+'active_members.csv', index=False)
         with open(path_to_tmp+'former_members.json', 'w') as outfile:
             json.dump(combined_former_json, outfile, indent=0)
             # for line in combined_former_json:
@@ -106,6 +104,18 @@ class UKParliament:
         # Pandas + CSV solution:
         former_members_df = pd.json_normalize(combined_former_json)
         former_members_df.to_csv(path_to_tmp+'former_members.csv', index=False)
+
+        ################
+        #DATA WRANGLING#
+        ################
+        # Cleaning up column names
+        active_members_df.columns = [x.replace('.', '') for x in active_members_df.columns]
+        former_members_df.columns = [x.replace('.', '') for x in former_members_df.columns]
+        # Cleaning up House Membership column
+        active_members_df['latestHouseMembershiphouse'] = active_members_df['latestHouseMembershiphouse'].apply(lambda x: 'Commons' if x==1 else 'Lords')
+        former_members_df['latestHouseMembershiphouse'] = former_members_df['latestHouseMembershiphouse'].apply(lambda x: 'Commons' if x==1 else 'Lords')
+
+
 
         print('Uploading active members json to Google Cloud Storage...')
         upload_blob(bucket_name = 'civicrm_assets', source_file_name = path_to_tmp+'active_members.csv', destination_blob_name='Parliament/active_members.csv', project_id='crmserver-id')
@@ -132,7 +142,7 @@ class UKParliament:
                 os.remove(filePath)
             except:
                 print("Error while deleting file : ", filePath)
-        print('All done! Be on your merry way.')
+        print('All done updating the Parliamentarians with latest data! Be on your merry way.')
         return active_members_df, former_members_df
 
     def get_contact_info(self, path_to_active_members_json, path_to_tmp):
@@ -157,9 +167,16 @@ class UKParliament:
                 combined_json.append(data)
             except:
                 pass
+        
+        new_data = []
 
-        contact_info = pd.json_normalize(combined_json)
-        contact_info.to_csv(path_to_tmp+'contact_info.csv')
+        for d in combined_json:
+            for e in d:
+                new_data.append(e)
+
+        contact_info = pd.json_normalize(new_data)
+        
+        # contact_info.to_csv(path_to_tmp+'contact_info.csv')
         # with open(path_to_tmp+'contact_info.json', 'w') as f:
         #     json.dump(combined_json, f, indent=0)
             # for line in combined_json:
@@ -168,6 +185,7 @@ class UKParliament:
         print('Uploading contact details json to Google Cloud Storage...')
         upload_blob(bucket_name = 'civicrm_assets', source_file_name = path_to_tmp+'contact_info.csv', destination_blob_name='Parliament/contact_details.csv', project_id='crmserver-id')
         print('...done. Finished json upload.')
+        return contact_info
 
 
     def get_job_history(self, api_number, create_id_col = False):
@@ -189,41 +207,63 @@ class UKParliament:
             data = response.json()
 
             # From the response, we obtain the nested data, which is sorted into three kinds of jobs
-            govt_jobs = pd.DataFrame(data['value']['governmentPosts'])
-            oppo_jobs = pd.DataFrame(data['value']['oppositionPosts'])
-            cttee_jobs = pd.DataFrame(data['value']['committeeMemberships'])
+            if len(data['value']['governmentPosts']) > 0:
+                govt_jobs = pd.DataFrame(data['value']['governmentPosts'])
+            else:
+                govt_jobs = pd.DataFrame(columns=['house', 'name', 'id', 'startDate', 'endDate', 'additionalInfo', 'additionalInfoLink'])
 
+            if len(data['value']['oppositionPosts']) > 0:
+                oppo_jobs = pd.DataFrame(data['value']['oppositionPosts'])
+            else:
+                oppo_jobs = pd.DataFrame(columns=['house', 'name', 'id', 'startDate', 'endDate', 'additionalInfo', 'additionalInfoLink'])
+            
+            if len(data['value']['committeeMemberships']) > 0:
+                cttee_jobs = pd.DataFrame(data['value']['committeeMemberships'])
+            else:
+                cttee_jobs = pd.DataFrame(columns=['house', 'name', 'id', 'startDate', 'endDate', 'additionalInfo', 'additionalInfoLink'])
             # The committee jobs dataframe needs some tidying to distinguish between membership and chairmanship of the committee. 
+            # BELOW WAS TIDIED UP DUE TO AN ERROR WHEN THERE WERE NO COMMITTEE MEMBERSHIPS
             # Add 'Member of' in front of committee jobs
-            cttee_jobs['name'] = cttee_jobs.name.apply(lambda x: 'Member of ' + x if 'Committee' in x else x)
+            # print(govt_jobs.columns.tolist())
+            # cttee_jobs['name'] = cttee_jobs['name'].apply(lambda x: 'Member of ' + x if 'Committee' in x else x)
+            # print(cttee_jobs.columns.tolist())
 
             # Replace 'Member of' with 'Chair of' if additionalInfo column indicates that they were a chair of the committee
-            cttee_jobs['name'] = cttee_jobs.apply(lambda row: row['name'].replace('Member of ', 'Chair of ') if row['additionalInfo'] == 'Chaired' else row['name'], axis=1)
+            # cttee_jobs['name'] = cttee_jobs.apply(lambda row: row['name'].replace('Member of ', 'Chair of ') if (row['additionalInfo'] == 'Chaired') else row['name'], axis=1)
 
             # Now we concatenate the three dataframes into one big one. They all have the same columns, so this is easy. 
             jobs_df = pd.concat([govt_jobs, oppo_jobs, cttee_jobs])
-            # Make a column that specifies the MPs' Parliament API number so we have some reference back to the MP
-            jobs_df['mp_id'] = api_number
-            # Now we merge them with self.mps, which has API number + contact_id number from CiviCRM
-            jobs_df = jobs_df.merge(self.mps, how='inner', left_on='mp_id', right_on='parliament_api_number_10')
-            # Drop a few unecessary columns - we need to start making this DataFrame look like our target SQL table.
-            jobs_df.drop(columns = ['id_x', 'id_y', 'parliament_api_number_10', 'house', 'mp_id', 'additionalInfoLink'], inplace=True, errors='ignore')
-            # In this try and except clause, we try to obtain the necessary columns for our target table. Of course, it's possible that MPs  have no job info, if they've never had a parliamentary job. 
-            # In these cases, there will be an error, and we simple pass and return no data, since there's no job info to be found. That's why the except passes on a 'keyerror'. 
-            # 
-            try:
-                jobs_df = jobs_df[['entity_id', 'name', 'startDate', 'endDate', 'additionalInfo']]
-                jobs_df.columns = ['entity_id', 'job_title_11', 'start_date_12', 'end_date_13', 'employer_govt_dept_committee_etc_14']
-                jobs_df.drop_duplicates(inplace=True)
-                # This provisions some functionality around an id column. Not useful when doing mass scrapes. 
-                if create_id_col:
-                    jobs_df['id'] = jobs_df.index + 1
-                    jobs_df = jobs_df[['id', 'entity_id', 'job_title_11', 'start_date_12', 'end_date_13', 'employer_govt_dept_committee_etc_14']]
-                else:
+            if jobs_df.shape[0] > 0:
+                # Add 'Member of' in front of committee jobs
+                jobs_df['name'] = jobs_df['name'].apply(lambda x: 'Member of ' + x if 'Committee' in x else x)
+                # Replace 'Member of' with 'Chair of' if additionalInfo column indicates that they were a chair of the committee
+                jobs_df['name'] = jobs_df.apply(lambda row: row['name'].replace('Member of ', 'Chair of ') if (row['additionalInfo'] == 'Chaired') else row['name'], axis=1)
+
+                # Make a column that specifies the MPs' Parliament API number so we have some reference back to the MP
+                jobs_df['mp_id'] = api_number
+                # Now we merge them with self.mps, which has API number + contact_id number from CiviCRM
+                jobs_df = jobs_df.merge(self.mps, how='inner', left_on='mp_id', right_on='parliament_api_number_68')
+                # Drop a few unecessary columns - we need to start making this DataFrame look like our target SQL table.
+                jobs_df.drop(columns = ['id_x', 'id_y', 'parliament_api_number_68', 'house', 'mp_id', 'additionalInfoLink'], inplace=True, errors='ignore')
+                # In this try and except clause, we try to obtain the necessary columns for our target table. Of course, it's possible that MPs  have no job info, if they've never had a parliamentary job. 
+                # In these cases, there will be an error, and we simple pass and return no data, since there's no job info to be found. That's why the except passes on a 'keyerror'. 
+                # 
+                try:
+                    jobs_df = jobs_df[['entity_id', 'name', 'startDate', 'endDate', 'additionalInfo']]
+                    jobs_df.columns = ['entity_id', 'job_title_11', 'start_date_12', 'end_date_13', 'employer_govt_dept_committee_etc_14']
+                    jobs_df.drop_duplicates(inplace=True)
+                    # This provisions some functionality around an id column. Not useful when doing mass scrapes. 
+                    if create_id_col:
+                        jobs_df['id'] = jobs_df.index + 1
+                        jobs_df = jobs_df[['id', 'entity_id', 'job_title_11', 'start_date_12', 'end_date_13', 'employer_govt_dept_committee_etc_14']]
+                    else:
+                        pass
+                    return jobs_df
+                except KeyError:
                     pass
+            else:
+                jobs_df = pd.DataFrame(columns=['house', 'name', 'id', 'startDate', 'endDate', 'additionalInfo', 'additionalInfoLink'])
                 return jobs_df
-            except KeyError:
-                pass
         else:
             pass
 
@@ -254,22 +294,23 @@ class UKParliament:
 
     def update_mp_job_info(self, path_to_tmp_folder):
         """
-        This function returns a DataFrame containing all MP job information."""
-
-        # Instantiate UK Parliament class above. 
+        This function returns a DataFrame containing all MP job information.
+        """
 
         # mps_list = self.mps.parliament_api_number_10.tolist()
-        print('Got preliminary info')
+        print('Got preliminary info, now updating job history. This will take a while. ')
         for mp in tqdm(self.mps_ids):
-            try:
-                df = self.get_job_history(mp)
-                df.to_csv(path_to_tmp_folder+'mp_{}.csv'.format(mp))
-            except:
-                print('excepted')
-                pass
+            # try:
+            df = self.get_job_history(mp)
+            df.to_csv(path_to_tmp_folder+'mp_{}.csv'.format(mp))
+            # except:
+            #     print('excepted')
+            #     pass
             
         df = pd.concat([pd.read_csv(file, index_col=0) for file in glob.glob(path_to_tmp_folder+'mp_*.csv')], ignore_index=True)
         df.drop_duplicates(inplace=True)
         df['id'] = df.index + 1
         df = df[['id', 'entity_id', 'job_title_11', 'start_date_12', 'end_date_13', 'employer_govt_dept_committee_etc_14']]
+        df['is_current_job_67'] = None
+        df['frontbench_job_69'] = None
         return df
