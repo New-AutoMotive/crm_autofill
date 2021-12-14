@@ -1,5 +1,5 @@
 <div align = 'center'>
-    <img src="/home/ben/crm_autofill/crm_autofill/assets/logo.png" width="200"><br>
+    <img src="/assets/logo.png" width="200"><br>
 </div>
 
 
